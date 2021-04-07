@@ -14,19 +14,22 @@ MainWindow::MainWindow(QWidget *parent)
     QThread* thread = new QThread();
     DictionaryReader* dReader = new DictionaryReader("file.txt");
     dReader->moveToThread(thread);
-    connect(dReader,SIGNAL(SendWord(QString)),this,SLOT(UpdateTextEdit(QString)),Qt::QueuedConnection);
-    connect(dReader,SIGNAL(Start()),ui->plainTextEdit,SLOT(clear()),Qt::QueuedConnection);
+    connect(dReader,SIGNAL(SendWord(QStringList)),this,SLOT(UpdateBuffer(QStringList)),Qt::QueuedConnection);
     connect(this,SIGNAL(StopParsing()),dReader,SLOT(StopParsing()),Qt::QueuedConnection);
     connect(this,SIGNAL(StartParsing(QString)),dReader,SLOT(StartParsing(QString)),Qt::QueuedConnection);
 
-    timer.setInterval(200);
-    connect(&timer,SIGNAL(timeout()),dReader,SLOT(SendBuffer()),Qt::QueuedConnection);
     thread->start();
 
-
+    connect(dReader,&DictionaryReader::Start,this,[this]{bufferResults.clear();});
+    connect(dReader,SIGNAL(Start()),ui->plainTextEdit,SLOT(clear()),Qt::QueuedConnection);
     connect(dReader,SIGNAL(Start()),this,SLOT(printLoading()),Qt::QueuedConnection);
-    connect(dReader,SIGNAL(Complete()),this,SLOT(printComplete()),Qt::QueuedConnection);
+    connect(dReader,&DictionaryReader::Complete,this,[&]{flComputeComlete=true;});
+}
 
+void MainWindow::timerEvent(QTimerEvent *event) {
+  if (event->timerId() == m_timer.timerId()){
+      UpdateTextEdit();
+  }
 }
 
 MainWindow::~MainWindow()
@@ -34,27 +37,35 @@ MainWindow::~MainWindow()
     delete ui;
 }
 
+void MainWindow::UpdateBuffer(const QStringList &buffer){
+    bufferResults.append(buffer);
+}
 
-void MainWindow::UpdateTextEdit(const QString &str){
+void MainWindow::UpdateTextEdit(){
     QTextDocument* doc = ui->plainTextEdit->document();
     QTextCursor cursor(doc);
     cursor.movePosition(QTextCursor::End);
-    cursor.insertText(str);
+    for (int i=0;i<256&&!bufferResults.empty();++i ) {
+    cursor.insertText(bufferResults.front());
+        bufferResults.pop_front();
+    }
+    if(bufferResults.empty()&&flComputeComlete){
+        ui->statusbar->showMessage("Complete",2000);
+        m_timer.stop();
+    }
+
 }
 
 void MainWindow::on_lineEdit_textChanged(const QString &arg1)
 {
+    m_timer.stop();
+    flComputeComlete = false;
     emit StopParsing();
     emit StartParsing(arg1);
-    timer.start();
+    m_timer.start(0,this);
 }
 
 void MainWindow::printLoading()
 {
     ui->statusbar->showMessage("Loading...");
-}
-
-void MainWindow::printComplete()
-{
-    ui->statusbar->showMessage("Complete",2000);
 }

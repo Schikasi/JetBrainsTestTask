@@ -19,18 +19,22 @@ public:
     ~MainWindow();
 
 public slots:
-    void UpdateTextEdit(const QString &);
+    void UpdateTextEdit();
 
+    void UpdateBuffer(const QStringList &str);
 private slots:
     void on_lineEdit_textChanged(const QString &);
     void printLoading();
-    void printComplete();
 
+    void timerEvent(QTimerEvent *event);
 private:
     Ui::MainWindow *ui;
-    QTimer timer;
+    QBasicTimer m_timer;
+    QStringList bufferResults;
+    bool flComputeComlete = true;
 signals:
     void StopParsing();
     void StartParsing(const QString &);
+    void SP();
 };
 #endif // MAINWINDOW_H

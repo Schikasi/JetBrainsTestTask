@@ -21,11 +21,18 @@
     </sizepolicy>
    </property>
    <layout class="QGridLayout" name="gridLayout">
-    <item row="2" column="0">
+    <item row="4" column="0">
      <widget class="QLineEdit" name="lineEdit"/>
     </item>
-    <item row="3" column="0">
-     <widget class="QPlainTextEdit" name="plainTextEdit"/>
+    <item row="5" column="0">
+     <widget class="QPlainTextEdit" name="plainTextEdit">
+      <property name="undoRedoEnabled">
+       <bool>false</bool>
+      </property>
+      <property name="readOnly">
+       <bool>true</bool>
+      </property>
+     </widget>
     </item>
    </layout>
   </widget>

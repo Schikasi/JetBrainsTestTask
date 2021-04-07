@@ -1,6 +1,7 @@
 #ifndef DICTIONARYREADER_H
 #define DICTIONARYREADER_H
 
+#include <QBasicTimer>
 #include <QFile>
 #include <QObject>
 #include <QTextStream>
@@ -17,7 +18,10 @@ private:
     QString pattern="";
     QFile dict;
     QTextStream *stream= nullptr;
-public:
+
+    QStringList bufferResults;
+
+    QBasicTimer m_timer;public:
     DictionaryReader(const QString &pathFile);
     ~DictionaryReader();
 public slots:
@@ -27,12 +31,13 @@ public slots:
     void CloseDictionary();
     void SendBuffer();
 signals:
-    void SendWord(const QString &);
+    void SendWord(const QStringList &);
     void Start();
     void Complete();
     void Next();
 private slots:
     void ParseNext();
+    void timerEvent(QTimerEvent *event);
 };
 
 #endif // DICTIONARYREADER_H

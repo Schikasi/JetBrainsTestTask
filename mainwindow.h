@@ -19,18 +19,24 @@ public:
     ~MainWindow();
 
 public slots:
-    void UpdateTextEdit(const QString &);
-
+    //Преобразует список строк в строку и добавляет в конец буфера
+    void AppendBuffer(const QStringList &);
 private slots:
-    void on_lineEdit_textChanged(const QString &);
-    void printLoading();
-    void printComplete();
-
+    //Выводит верхний блок совпавших слов из буфера
+    void UpdateTextEdit();
+    void timerEvent(QTimerEvent *event);
 private:
     Ui::MainWindow *ui;
-    QTimer timer;
+    QBasicTimer m_timer;
+    //Буффер блоков совпавших слов
+    QStringList bufferResults;
+    //Флаг завершения приёма всех совпадений
+    bool isReceivingComplete = true;
 signals:
-    void StopParsing();
-    void StartParsing(const QString &);
+    void StartParsing();
+    void SendPattern(const QString &);
+    void SendSubSeqOption(const int &);
+    void CompleteReceiving();
+    void Clear();
 };
 #endif // MAINWINDOW_H

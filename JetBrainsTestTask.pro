@@ -11,11 +11,13 @@ CONFIG += c++11
 SOURCES += \
     dictionaryreader.cpp \
     main.cpp \
-    mainwindow.cpp
+    mainwindow.cpp \
+    safethread.cpp
 
 HEADERS += \
     dictionaryreader.h \
-    mainwindow.h
+    mainwindow.h \
+    safethread.h
 
 FORMS += \
     mainwindow.ui

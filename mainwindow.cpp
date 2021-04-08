@@ -2,31 +2,36 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 
-#include <QFile>
-#include <QTextStream>
-#include <QThread>
-
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
-    QThread* thread = new QThread();
-    DictionaryReader* dReader = new DictionaryReader("file.txt");
-    dReader->moveToThread(thread);
-    connect(dReader,SIGNAL(SendWord(QString)),this,SLOT(UpdateTextEdit(QString)),Qt::QueuedConnection);
-    connect(dReader,SIGNAL(Start()),ui->plainTextEdit,SLOT(clear()),Qt::QueuedConnection);
-    connect(this,SIGNAL(StopParsing()),dReader,SLOT(StopParsing()),Qt::QueuedConnection);
-    connect(this,SIGNAL(StartParsing(QString)),dReader,SLOT(StartParsing(QString)),Qt::QueuedConnection);
 
-    timer.setInterval(200);
-    connect(&timer,SIGNAL(timeout()),dReader,SLOT(SendBuffer()),Qt::QueuedConnection);
-    thread->start();
+    connect(this,&MainWindow::Clear,this,[&]{
+        if(m_timer.isActive())m_timer.stop();
+        bufferResults.clear();
+        ui->plainTextEdit->clear();
+    });
 
+    connect(this,&MainWindow::StartParsing,this,[&]{
+        isReceivingComplete = false;
+        if(!m_timer.isActive())m_timer.start(0,this);
+        ui->statusbar->showMessage("Loading...");
+    });
 
-    connect(dReader,SIGNAL(Start()),this,SLOT(printLoading()),Qt::QueuedConnection);
-    connect(dReader,SIGNAL(Complete()),this,SLOT(printComplete()),Qt::QueuedConnection);
+    connect(this,&MainWindow::CompleteReceiving,this,[&]{
+        isReceivingComplete = true;
+    });
 
+    connect(ui->lineEdit,&QLineEdit::textEdited,this,&MainWindow::SendPattern);
+    connect(ui->checkBox,&QCheckBox::stateChanged,this,&MainWindow::SendSubSeqOption);
+}
+
+void MainWindow::timerEvent(QTimerEvent *event) {
+  if (event->timerId() == m_timer.timerId()){
+      UpdateTextEdit();
+  }
 }
 
 MainWindow::~MainWindow()
@@ -34,27 +39,22 @@ MainWindow::~MainWindow()
     delete ui;
 }
 
+void MainWindow::AppendBuffer(const QStringList &buffer){
+    bufferResults.append(buffer.mid(0).join(""));
+}
 
-void MainWindow::UpdateTextEdit(const QString &str){
+void MainWindow::UpdateTextEdit(){
     QTextDocument* doc = ui->plainTextEdit->document();
     QTextCursor cursor(doc);
     cursor.movePosition(QTextCursor::End);
-    cursor.insertText(str);
+    if(!bufferResults.empty()){
+        cursor.insertText(bufferResults.front());
+        bufferResults.pop_front();
+    }else{
+        if(isReceivingComplete){
+            ui->statusbar->showMessage("Complete",2000);
+            m_timer.stop();
+        }
+    }
 }
 
-void MainWindow::on_lineEdit_textChanged(const QString &arg1)
-{
-    emit StopParsing();
-    emit StartParsing(arg1);
-    timer.start();
-}
-
-void MainWindow::printLoading()
-{
-    ui->statusbar->showMessage("Loading...");
-}
-
-void MainWindow::printComplete()
-{
-    ui->statusbar->showMessage("Complete",2000);
-}

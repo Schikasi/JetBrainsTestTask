@@ -5,15 +5,24 @@
 #include <QApplication>
 #include <QThread>
 #include <QObject>
+#include <QMessageBox>
 
 int main(int argc, char *argv[])
 {
     QApplication a(argc, argv);
     MainWindow w;
 
+    QString path = (argc == 2) ? argv[1] : "words.txt";
+
+    if(!QFile::exists(path)){
+        QMessageBox msg;
+        msg.setText("Файл: \""+path+"\" не существует.");
+        msg.exec();
+        return 0;
+    }
 
     SafeThread thread;
-    DictionaryReader dReader("file.txt");
+    DictionaryReader dReader(path);
     dReader.moveToThread(&thread);
 
     QObject::connect(&dReader,&DictionaryReader::SendMatchingWords,&w,&MainWindow::AppendBuffer);

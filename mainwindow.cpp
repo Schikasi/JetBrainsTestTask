@@ -2,28 +2,30 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 
-#include <QFile>
-#include <QTextStream>
-#include <QThread>
-
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
-    QThread* thread = new QThread();
-    DictionaryReader* dReader = new DictionaryReader("file.txt");
-    dReader->moveToThread(thread);
-    connect(dReader,SIGNAL(SendWord(QStringList)),this,SLOT(UpdateBuffer(QStringList)),Qt::QueuedConnection);
-    connect(this,SIGNAL(StopParsing()),dReader,SLOT(StopParsing()),Qt::QueuedConnection);
-    connect(this,SIGNAL(StartParsing(QString)),dReader,SLOT(StartParsing(QString)),Qt::QueuedConnection);
 
-    thread->start();
+    connect(this,&MainWindow::Clear,this,[&]{
+        if(m_timer.isActive())m_timer.stop();
+        bufferResults.clear();
+        ui->plainTextEdit->clear();
+    });
 
-    connect(dReader,&DictionaryReader::Start,this,[this]{bufferResults.clear();});
-    connect(dReader,SIGNAL(Start()),ui->plainTextEdit,SLOT(clear()),Qt::QueuedConnection);
-    connect(dReader,SIGNAL(Start()),this,SLOT(printLoading()),Qt::QueuedConnection);
-    connect(dReader,&DictionaryReader::Complete,this,[&]{flComputeComlete=true;});
+    connect(this,&MainWindow::StartParsing,this,[&]{
+        isReceivingComplete = false;
+        if(!m_timer.isActive())m_timer.start(0,this);
+        ui->statusbar->showMessage("Loading...");
+    });
+
+    connect(this,&MainWindow::CompleteReceiving,this,[&]{
+        isReceivingComplete = true;
+    });
+
+    connect(ui->lineEdit,&QLineEdit::textEdited,this,&MainWindow::SendPattern);
+    connect(ui->checkBox,&QCheckBox::stateChanged,this,&MainWindow::SendSubSeqOption);
 }
 
 void MainWindow::timerEvent(QTimerEvent *event) {
@@ -37,8 +39,8 @@ MainWindow::~MainWindow()
     delete ui;
 }
 
-void MainWindow::UpdateBuffer(const QStringList &buffer){
-    bufferResults.append(buffer.mid(0,-1).join(""));
+void MainWindow::AppendBuffer(const QStringList &buffer){
+    bufferResults.append(buffer.mid(0).join(""));
 }
 
 void MainWindow::UpdateTextEdit(){
@@ -48,24 +50,11 @@ void MainWindow::UpdateTextEdit(){
     if(!bufferResults.empty()){
         cursor.insertText(bufferResults.front());
         bufferResults.pop_front();
+    }else{
+        if(isReceivingComplete){
+            ui->statusbar->showMessage("Complete",2000);
+            m_timer.stop();
+        }
     }
-    if(bufferResults.empty()&&flComputeComlete){
-        ui->statusbar->showMessage("Complete",2000);
-        m_timer.stop();
-    }
-
 }
 
-void MainWindow::on_lineEdit_textChanged(const QString &arg1)
-{
-    m_timer.stop();
-    flComputeComlete = false;
-    emit StopParsing();
-    emit StartParsing(arg1);
-    m_timer.start(0,this);
-}
-
-void MainWindow::printLoading()
-{
-    ui->statusbar->showMessage("Loading...");
-}

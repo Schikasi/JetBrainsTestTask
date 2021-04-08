@@ -45,7 +45,7 @@ void MainWindow::UpdateTextEdit(){
     QTextDocument* doc = ui->plainTextEdit->document();
     QTextCursor cursor(doc);
     cursor.movePosition(QTextCursor::End);
-    for (int i=0;i<256&&!bufferResults.empty();++i ) {
+    for (int i=0;i<1024&&!bufferResults.empty();++i ) {
     cursor.insertText(bufferResults.front());
         bufferResults.pop_front();
     }

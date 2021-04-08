@@ -38,15 +38,15 @@ MainWindow::~MainWindow()
 }
 
 void MainWindow::UpdateBuffer(const QStringList &buffer){
-    bufferResults.append(buffer);
+    bufferResults.append(buffer.mid(0,-1).join(""));
 }
 
 void MainWindow::UpdateTextEdit(){
     QTextDocument* doc = ui->plainTextEdit->document();
     QTextCursor cursor(doc);
     cursor.movePosition(QTextCursor::End);
-    for (int i=0;i<1024&&!bufferResults.empty();++i ) {
-    cursor.insertText(bufferResults.front());
+    if(!bufferResults.empty()){
+        cursor.insertText(bufferResults.front());
         bufferResults.pop_front();
     }
     if(bufferResults.empty()&&flComputeComlete){

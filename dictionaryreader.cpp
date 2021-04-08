@@ -60,7 +60,7 @@ void DictionaryReader::StopParsing(){
 
 void DictionaryReader::ParseNext(){
     if(isStoped)return;
-    for(int i=0;i<1000;++i){
+    for(int i=0;i<2048;++i){
         if(stream->atEnd()||pattern==""){
             emit Complete();
             return;
